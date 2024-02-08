@@ -46,15 +46,21 @@ export function Sellimeier_PPLN(WL, pol, T) {
 }
 
 export function AiryFunction(R1, R2, L, neff, WL) {
-    const phi_j = WL.map((wl) => (2 * Math.PI * L * neff) / wl);
-    const A = phi_j.map((phi) =>
-        Math.pow(
+    if (neff.length !== WL.length) {
+        throw new Error('neff and WL must be the same length');
+    }
+
+    const A = neff.map((n, i) => {
+        const wl = WL[i];
+        const phi = (2 * Math.PI * L * n) / wl;
+        return Math.pow(
             1 +
                 (4 * Math.sqrt(R1 * R2) * Math.pow(Math.sin(phi), 2)) /
                     Math.pow(1 - Math.sqrt(R1 * R2), 2),
             -1,
-        ),
-    );
+        );
+    });
+
     return A;
 }
 

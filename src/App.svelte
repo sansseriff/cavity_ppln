@@ -23,8 +23,12 @@
 		c: 299792458, // speed of light in m/s
 		WLpumpair: 780e-9,
 		numWLs: 501,
-		BW: 20e-9,
-		WLSigma: 10
+		BW: 10e-9, // bandwidth in m
+		WLSigma: 10, // sigma in nm
+		L: 0.0074, // length in mm
+		R1: 0.85,
+		R2: 0.1,
+		Texpt: 128.25
 	};
 
 	const WLCenteral = params.WLpumpair * 2;
@@ -34,6 +38,7 @@
 		const WLCenteral = p.WLpumpair * 2;
 
 		const WLSigma = p.WLSigma*1e-9;
+		const L = p.L*1e-3;
 
 		const WLSignalairJSI = linspace(
 			WLCenteral - p.BW / 2,
@@ -46,10 +51,17 @@
 			p.numWLs,
 		);
 
-		// console.log("start: ", (2 * Math.PI * p.c) / WLSignalairJSI[0]);
-		// console.log("start 2: ", WLIdlerairJSI[0]);
 
-		// console.log(WLSignalairJSI.map((wl) => 10e9 * wl));
+		// const nPumpPPLN = Sellimeier_PPLN(p.WLpumpair, "eray", p.Texpt)
+		const nSignalPPLN= Sellimeier_PPLN(WLSignalairJSI, "eray", p.Texpt)
+    	const nIdlerPPLN= Sellimeier_PPLN(WLIdlerairJSI, "eray", p.Texpt)
+
+		// console.log("nSignalPPLN: ", nSignalPPLN)
+
+		const ASignal = AiryFunction(p.R1, p.R2, p.L , nSignalPPLN, WLSignalairJSI)
+    	const AIdler = AiryFunction(p.R1, p.R2, p.L, nIdlerPPLN, WLIdlerairJSI)
+
+
 
 		const OmegaSignalJSI = WLSignalairJSI.map(
 			(wl) => (2 * Math.PI * p.c) / wl,
@@ -63,6 +75,7 @@
 
 		// Calculate the JSI using the Gaussian approximation
 
+		// console.log(AIdler)
 		// flip the idler array
 		OmegaIdlerJSI = OmegaIdlerJSI.reverse();
 		let JSI = OmegaSignalJSI.map((os, i) => {
@@ -83,10 +96,12 @@
 				// 	// console.log("Omega0: ", Omega0);
 				// 	// console.log("FSigma: ", FSigma);
 				// }
-				return Math.exp(
-					-Math.pow(os + oi - 2 * Omega0, 2) /
-						(2 * Math.pow(FSigma, 2)),
-				);
+				return AIdler[j] * ASignal[i] 
+				// *
+				// Math.exp(
+				// 	-Math.pow(os + oi - 2 * Omega0, 2) /
+				// 		(2 * Math.pow(FSigma, 2)),
+				// );
 			});
 		});
 
@@ -194,15 +209,7 @@
 <main>
 	<canvas bind:this={canvas} style="position: absolute;"></canvas>
 	<svg bind:this={svg} style="position: absolute; left: 0; top: 0;"></svg>
-	<!-- <div style="position: relative; top: 650px;">
-		<input
-			type="range"
-			min="1"
-			max="100"
-			step="1"
-			bind:value={params.WLSigma}
-		/>
-	</div> -->
+
 	<div class="slidecontainer" style="position: relative; top: 650px;">
 		<p class="output">Wavelength Sigma</p>
         <input
@@ -215,6 +222,58 @@
             id="myRange_1"
         />
 		<p class="output">{params.WLSigma} nm</p>
+    </div>
+	<div class="slidecontainer" style="position: relative; top: 650px;">
+		<p class="output">Waveguide Length</p>
+        <input
+            type="range"
+            min="0.0001"
+            max="0.002"
+			step="0.00001"
+            bind:value={params.L}
+            class="slider"
+            id="myRange_1"
+        />
+		<p class="output">{params.L} nm</p>
+    </div>
+	<div class="slidecontainer" style="position: relative; top: 650px;">
+		<p class="output">Temperature</p>
+        <input
+            type="range"
+            min="0"
+            max="200"
+			step="1"
+            bind:value={params.Texpt}
+            class="slider"
+            id="myRange_1"
+        />
+		<p class="output">{params.Texpt} Celsius</p>
+    </div>
+	<div class="slidecontainer" style="position: relative; top: 650px;">
+		<p class="output">R1</p>
+        <input
+            type="range"
+            min="0"
+            max="1"
+			step=".0001"
+            bind:value={params.R1}
+            class="slider"
+            id="myRange_1"
+        />
+		<p class="output">{params.R1}</p>
+    </div>
+	<div class="slidecontainer" style="position: relative; top: 650px;">
+		<p class="output">R2</p>
+        <input
+            type="range"
+            min="0"
+            max="1"
+			step=".0001"
+            bind:value={params.R2}
+            class="slider"
+            id="myRange_1"
+        />
+		<p class="output">{params.R2}</p>
     </div>
     
 </main>
@@ -274,6 +333,7 @@
 		/* padding-bottom: 10px; */
 		padding-left: 10px;
 		padding-right: 10px;
+		min-width: 140px;
     }
 
 
